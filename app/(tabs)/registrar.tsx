@@ -1,105 +1,116 @@
-import { useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  Text, TextInput, TouchableOpacity,
+  View,
+} from "react-native";
+import { matchCategory } from "../helpers/categoryMatcher";
 
 export default function Registrar() {
+  const params = useLocalSearchParams();
+  const router = useRouter();
+  const iniciouPorVoz = params.voice === "true";
+
   const [valor, setValor] = useState("");
   const [categoria, setCategoria] = useState("");
   const [data, setData] = useState("");
+  const [estadoVoz, setEstadoVoz] =
+    useState<"idle" | "listening" | "processing">("idle");
 
-  function salvar() {
+  useEffect(() => {
+    if (iniciouPorVoz) {
+      setEstadoVoz("listening");
+
+      // OUVINDO → PROCESSANDO
+      setTimeout(() => {
+        setEstadoVoz("processing");
+
+        // MOCK de reconhecimento
+        setTimeout(() => {
+          const textoFalado = "45 reais gasolina";
+          const categoriaDetectada = matchCategory(textoFalado);
+
+          router.push({
+            pathname: "/(tabs)/confirmacao",
+            params: {
+              valor: "R$ 45,00",
+              categoria: categoriaDetectada,
+              data: "Hoje",
+            },
+          });
+
+          setEstadoVoz("idle");
+        }, 900);
+      }, 700);
+    }
+  }, [iniciouPorVoz]);
+
+  function salvarManual() {
     if (!valor || !categoria) {
       alert("Preencha valor e categoria");
       return;
     }
-
-    console.log({
-      valor,
-      categoria,
-      data: data || "hoje",
-    });
-
-    alert("Despesa registrada (mock)");
-
-    setValor("");
-    setCategoria("");
-    setData("");
+    alert("Despesa registrada manualmente (mock)");
+    setValor(""); setCategoria(""); setData("");
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Registrar despesa</Text>
 
-      {/* VALOR */}
-      <Text style={styles.label}>Valor</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ex: 45,90"
-        keyboardType="numeric"
-        value={valor}
-        onChangeText={setValor}
-      />
+      {estadoVoz === "listening" && (
+        <Text style={styles.stateText}>🎙️ Pode falar…</Text>
+      )}
+      {estadoVoz === "processing" && (
+        <Text style={styles.stateText}>⏳ Entendendo sua despesa…</Text>
+      )}
 
-      {/* CATEGORIA */}
-      <Text style={styles.label}>Categoria</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ex: Supermercado"
-        value={categoria}
-        onChangeText={setCategoria}
-      />
+      {!iniciouPorVoz && (
+        <>
+          <Text style={styles.label}>Valor</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: 45,90"
+            keyboardType="numeric"
+            value={valor}
+            onChangeText={setValor}
+          />
 
-      {/* DATA */}
-      <Text style={styles.label}>Data (opcional)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="DD/MM/AAAA ou deixar vazio"
-        value={data}
-        onChangeText={setData}
-      />
+          <Text style={styles.label}>Categoria</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: Supermercado"
+            value={categoria}
+            onChangeText={setCategoria}
+          />
 
-      {/* BOTÃO */}
-      <TouchableOpacity style={styles.button} onPress={salvar}>
-        <Text style={styles.buttonText}>Salvar despesa</Text>
-      </TouchableOpacity>
+          <Text style={styles.label}>Data (opcional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="DD/MM/AAAA ou deixar vazio"
+            value={data}
+            onChangeText={setData}
+          />
+
+          <TouchableOpacity style={styles.button} onPress={salvarManual}>
+            <Text style={styles.buttonText}>Salvar despesa</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
 
-/* ===== ESTILOS ===== */
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#F2F2F2",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  label: {
-    fontSize: 14,
-    marginBottom: 5,
-    color: "#333",
-  },
-  input: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-  },
+  container: { flex: 1, padding: 20, backgroundColor: "#F2F2F2" },
+  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 10 },
+  stateText: { textAlign: "center", color: "#0A8F55", marginBottom: 12, fontWeight: "600" },
+  label: { fontSize: 14, marginBottom: 5 },
+  input: { backgroundColor: "#FFF", padding: 12, borderRadius: 8, marginBottom: 15 },
   button: {
-    backgroundColor: "#0A8F55",
-    padding: 16,
-    borderRadius: 10,
+    backgroundColor: "#0A8F55", padding: 16, borderRadius: 10,
     alignItems: "center",
-    marginTop: 10,
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+  buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 16 },
 });
