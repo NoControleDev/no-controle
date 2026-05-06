@@ -1,15 +1,11 @@
 import { matchCategory } from "./categoryMatcher";
 
-/**
- * Converte números por extenso (pt-BR) até 999
- */
 const numberWords: Record<string, number> = {
-  zero: 0,
   um: 1,
   uma: 1,
   dois: 2,
   duas: 2,
-  três: 3,
+  tres: 3,
   quatro: 4,
   cinco: 5,
   seis: 6,
@@ -17,76 +13,79 @@ const numberWords: Record<string, number> = {
   oito: 8,
   nove: 9,
   dez: 10,
-  onze: 11,
-  doze: 12,
-  treze: 13,
-  quatorze: 14,
-  catorze: 14,
-  quinze: 15,
-  dezesseis: 16,
-  dezassete: 17,
-  dezoito: 18,
-  dezenove: 19,
   vinte: 20,
   trinta: 30,
   quarenta: 40,
   cinquenta: 50,
-  sessenta: 60,
-  setenta: 70,
-  oitenta: 80,
-  noventa: 90,
   cem: 100,
   cento: 100,
-  duzentos: 200,
-  trezentos: 300,
-  quatrocentos: 400,
-  quinhentos: 500,
-  seiscentos: 600,
-  setecentos: 700,
-  oitocentos: 800,
-  novecentos: 900,
 };
 
-/**
- * Tenta extrair um valor numérico da frase
- */
-function parseValueFromText(text: string): number | null {
-  // 1️⃣ Primeiro tenta números digitados
-  const digitMatch = text.match(/\d+([.,]\d+)?/);
-  if (digitMatch) {
-    return Number(digitMatch[0].replace(",", "."));
-  }
+const months: Record<string, number> = {
+  janeiro: 0,
+  fevereiro: 1,
+  marco: 2,
+  abril: 3,
+  maio: 4,
+  junho: 5,
+  julho: 6,
+  agosto: 7,
+  setembro: 8,
+  outubro: 9,
+  novembro: 10,
+  dezembro: 11,
+};
 
-  // 2️⃣ Depois tenta por extenso
-  const tokens = text.split(" ");
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function parseValue(text: string): number | null {
+  const digit = text.match(/\d+/);
+  if (digit) return Number(digit[0]);
+
   let total = 0;
-
-  tokens.forEach((t) => {
-    if (numberWords[t] !== undefined) {
-      total += numberWords[t];
-    }
+  Object.keys(numberWords).forEach((k) => {
+    if (text.includes(k)) total += numberWords[k];
   });
 
   return total > 0 ? total : null;
 }
 
-/**
- * Parser principal de fala
- */
-export function parseSpeech(textoFalado: string) {
-  const normalized = textoFalado
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\b(reais|real)\b/g, "")
-    .trim();
+function parseDateFromSpeech(text: string): Date {
+  const now = new Date();
+  let day: number | null = null;
+  let month: number | null = null;
+  let year: number = now.getFullYear();
 
-  const valor = parseValueFromText(normalized);
-  const categoria = matchCategory(normalized);
+  const digitDay = text.match(/dia (\d{1,2})/);
+  if (digitDay) day = Number(digitDay[1]);
+
+  Object.keys(numberWords).forEach((k) => {
+    if (text.includes(`dia ${k}`)) day = numberWords[k];
+  });
+
+  Object.keys(months).forEach((m) => {
+    if (text.includes(m)) month = months[m];
+  });
+
+  return new Date(
+    year,
+    month !== null ? month : now.getMonth(),
+    day !== null ? day : now.getDate()
+  );
+}
+
+export function parseSpeech(textoFalado: string) {
+  const text = normalize(textoFalado);
 
   return {
-    valor,
-    categoria,
+    valor: parseValue(text),
+    categoria: matchCategory(text),
+    data: parseDateFromSpeech(text),
     raw: textoFalado,
   };
 }

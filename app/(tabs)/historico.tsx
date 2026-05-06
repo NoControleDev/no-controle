@@ -48,9 +48,13 @@ export default function Historico() {
         contentContainerStyle={{ paddingBottom: 20 }}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.value}>
-              R$ {item.valor.toFixed(2).replace(".", ",")}
-            </Text>
+            
+            <Text>
+  R$ {typeof item.valor === "number"
+    ? item.valor.toFixed(2)
+    : "0.00"}
+</Text>
+
             <Text style={styles.category}>{item.categoria}</Text>
             <Text style={styles.date}>{item.data}</Text>
           </View>
