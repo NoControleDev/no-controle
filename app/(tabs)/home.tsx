@@ -9,14 +9,15 @@ export default function Home() {
   const [totalHoje, setTotalHoje] = useState(0);
   const [totalMes, setTotalMes] = useState(0);
   const [registrosHoje, setRegistrosHoje] = useState(0);
+  const [comparacaoTexto, setComparacaoTexto] = useState("");
 
-  /* 🔥 conversão segura de data */
+  /* ✅ Função segura de data */
   function parseDateSafe(dateStr: string) {
     const [ano, mes, dia] = dateStr.split("-");
     return new Date(Number(ano), Number(mes) - 1, Number(dia));
   }
 
-  /* 💰 formatação BR */
+  /* ✅ Formatação BR */
   function formatMoney(valor: number) {
     return valor.toLocaleString("pt-BR", {
       style: "currency",
@@ -24,7 +25,6 @@ export default function Home() {
     });
   }
 
-  /* ✅ ATUALIZA AO VOLTAR PRA TELA */
   useFocusEffect(
     useCallback(() => {
       async function carregarDados() {
@@ -38,10 +38,14 @@ export default function Home() {
         let totalMesTemp = 0;
         let registrosTemp = 0;
 
+        let totalOntem = 0;
+        const ontem = new Date();
+        ontem.setDate(ontem.getDate() - 1);
+
         data.forEach((item) => {
           const d = parseDateSafe(item.data);
 
-          // ✅ TOTAL DO DIA
+          // 🔥 TOTAL HOJE
           if (
             d.getDate() === hoje.getDate() &&
             d.getMonth() === mesAtual &&
@@ -51,18 +55,45 @@ export default function Home() {
             registrosTemp++;
           }
 
-          // ✅ TOTAL DO MÊS
+          // 📅 TOTAL MÊS
           if (
             d.getMonth() === mesAtual &&
             d.getFullYear() === anoAtual
           ) {
             totalMesTemp += Number(item.valor);
           }
+
+          // 📊 TOTAL ONTEM
+          if (
+            d.getDate() === ontem.getDate() &&
+            d.getMonth() === ontem.getMonth() &&
+            d.getFullYear() === ontem.getFullYear()
+          ) {
+            totalOntem += Number(item.valor);
+          }
         });
+
+        // ✅ TEXTO DE COMPARAÇÃO
+        let texto = "";
+
+        if (totalOntem === 0 ) {
+          texto = "";
+        } else if (totalDiaTemp > totalOntem) {
+          texto = `Você gastou ${formatMoney(
+            totalDiaTemp - totalOntem
+          )} a mais que ontem ⚠️`;
+        } else if (totalDiaTemp < totalOntem) {
+          texto = `Você gastou ${formatMoney(
+            totalOntem - totalDiaTemp
+          )} a menos que ontem ✅`;
+        } else {
+          texto = "Seus gastos estão iguais aos de ontem 📊";
+        }
 
         setTotalHoje(totalDiaTemp);
         setTotalMes(totalMesTemp);
         setRegistrosHoje(registrosTemp);
+        setComparacaoTexto(texto);
       }
 
       carregarDados();
@@ -87,17 +118,33 @@ export default function Home() {
         </Text>
       </View>
 
-      <View style={styles.metrics}>
-        
-        {/* 🔥 TOTAL DO DIA */}
-        <View style={styles.metricCardHighlight}>
-          <Text style={styles.metricLabel}>Total do dia</Text>
-          <Text style={styles.metricValue}>
-            {formatMoney(totalHoje)}
-          </Text>
+      {/* 🔥 NOVO BLOCO DE COMPARAÇÃO */}
+      {comparacaoTexto !== "" && (
+        <View style={styles.compareBox}>
+          <Text style={styles.compareText}>{comparacaoTexto}</Text>
         </View>
+      )}
 
-        {/* ✅ TOTAL DO MÊS */}
+      <View style={styles.metrics}>
+        <View style={styles.metricCardHighlight}>
+  <Text style={styles.metricLabel}>Total do dia</Text>
+
+  <Text style={styles.metricValue}>
+    {formatMoney(totalHoje)}
+  </Text>
+
+  {/* 🔥 FRASE DENTRO DO CARD */}
+  {comparacaoTexto !== "" && (
+    <Text style={styles.compareInline}>
+      {comparacaoTexto}
+    </Text>
+  )}
+</View>
+
+
+
+
+
         <View style={styles.metricCard}>
           <Text style={styles.metricLabel}>Total do mês</Text>
           <Text style={styles.metricValue}>
@@ -105,14 +152,12 @@ export default function Home() {
           </Text>
         </View>
 
-        {/* ✅ REGISTROS HOJE */}
         <View style={styles.metricCard}>
           <Text style={styles.metricLabel}>Registros hoje</Text>
           <Text style={styles.metricValue}>
             {registrosHoje}
           </Text>
         </View>
-
       </View>
 
       <TouchableOpacity
@@ -122,10 +167,18 @@ export default function Home() {
         <Text style={styles.voiceButtonText}>🎤 Falar despesa</Text>
       </TouchableOpacity>
     </View>
+
+
+
+   
+   
+
+
+
   );
 }
 
-/* 🎨 ESTILO */
+/* 🎨 ESTILOS */
 
 const styles = StyleSheet.create({
   container: {
@@ -152,7 +205,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     padding: 16,
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 12,
     borderWidth: 0.5,
     borderColor: "#eee",
     elevation: 3,
@@ -161,6 +214,21 @@ const styles = StyleSheet.create({
   insightText: {
     fontSize: 15,
     color: "#333",
+  },
+
+  compareBox: {
+    backgroundColor: "#FFF",
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 0.5,
+    borderColor: "#eee",
+    elevation: 2,
+  },
+
+  compareText: {
+    fontSize: 14,
+    color: "#444",
   },
 
   metrics: {
@@ -198,6 +266,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: "#0A8F55",
   },
+
+compareInline: {
+  marginTop: 6,
+  fontSize: 13,
+  color: "#555",
+},
+
 
   voiceButton: {
     backgroundColor: "#0A8F55",
