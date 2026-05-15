@@ -118,13 +118,7 @@ export default function Home() {
         </Text>
       </View>
 
-      {/* 🔥 NOVO BLOCO DE COMPARAÇÃO */}
-      {comparacaoTexto !== "" && (
-        <View style={styles.compareBox}>
-          <Text style={styles.compareText}>{comparacaoTexto}</Text>
-        </View>
-      )}
-
+      
       <View style={styles.metrics}>
         <View style={styles.metricCardHighlight}>
   <Text style={styles.metricLabel}>Total do dia</Text>
@@ -216,21 +210,8 @@ const styles = StyleSheet.create({
     color: "#333",
   },
 
-  compareBox: {
-    backgroundColor: "#FFF",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 0.5,
-    borderColor: "#eee",
-    elevation: 2,
-  },
-
-  compareText: {
-    fontSize: 14,
-    color: "#444",
-  },
-
+  
+  
   metrics: {
     marginBottom: 24,
   },

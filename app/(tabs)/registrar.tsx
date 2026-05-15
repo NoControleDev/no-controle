@@ -120,6 +120,28 @@ export default function Registrar() {
     setTimeout(() => valorInputRef.current?.focus(), 100);
   }
 
+function formatarData(date: Date) {
+  if (!date) return "";
+  return date.toLocaleDateString("pt-BR");
+}
+
+function parseData(text: string) {
+  const partes = text.split("/");
+
+  if (partes.length !== 3) return new Date();
+
+  const [dia, mes, ano] = partes;
+
+  return new Date(
+    Number(ano),
+    Number(mes) - 1,
+    Number(dia)
+  );
+}
+
+
+
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Registrar despesa</Text>
@@ -162,11 +184,13 @@ export default function Registrar() {
           />
 
           <Text style={styles.label}>Data</Text>
-          <TextInput
+
+            <TextInput
             style={styles.input}
-            value={data.toLocaleDateString("pt-BR")}
-            editable={false}
-          />
+             value={formatarData(data)}
+             onChangeText={(text) => setData(parseData(text))}
+             placeholder="dd/mm/aaaa"
+            />
 
           {state === "confirm" ? (
             <>
