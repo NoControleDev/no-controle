@@ -10,14 +10,16 @@ export default function Home() {
   const [totalMes, setTotalMes] = useState(0);
   const [registrosHoje, setRegistrosHoje] = useState(0);
   const [comparacaoTexto, setComparacaoTexto] = useState("");
+  const [previsaoTexto, setPrevisaoTexto] = useState("");
+  const [categoriaInsight, setCategoriaInsight] = useState("");
 
-  /* ✅ Função segura de data */
+  /* ✅ DATA SEGURA */
   function parseDateSafe(dateStr: string) {
     const [ano, mes, dia] = dateStr.split("-");
     return new Date(Number(ano), Number(mes) - 1, Number(dia));
   }
 
-  /* ✅ Formatação BR */
+  /* ✅ FORMATAR VALOR */
   function formatMoney(valor: number) {
     return valor.toLocaleString("pt-BR", {
       style: "currency",
@@ -42,10 +44,12 @@ export default function Home() {
         const ontem = new Date();
         ontem.setDate(ontem.getDate() - 1);
 
+        const categoriasMap: Record<string, number> = {};
+
         data.forEach((item) => {
           const d = parseDateSafe(item.data);
 
-          // 🔥 TOTAL HOJE
+          // ✅ TOTAL DO DIA
           if (
             d.getDate() === hoje.getDate() &&
             d.getMonth() === mesAtual &&
@@ -55,15 +59,19 @@ export default function Home() {
             registrosTemp++;
           }
 
-          // 📅 TOTAL MÊS
+          // ✅ TOTAL DO MÊS + MAPA DE CATEGORIA
           if (
             d.getMonth() === mesAtual &&
             d.getFullYear() === anoAtual
           ) {
             totalMesTemp += Number(item.valor);
+
+            categoriasMap[item.categoria] =
+              (categoriasMap[item.categoria] || 0) +
+              Number(item.valor);
           }
 
-          // 📊 TOTAL ONTEM
+          // ✅ ONTEM
           if (
             d.getDate() === ontem.getDate() &&
             d.getMonth() === ontem.getMonth() &&
@@ -73,27 +81,70 @@ export default function Home() {
           }
         });
 
-        // ✅ TEXTO DE COMPARAÇÃO
-        let texto = "";
+        // 🔥 COMPARAÇÃO COM ONTEM
+        let textoComparacao = "";
 
-        if (totalOntem === 0 ) {
-          texto = "";
-        } else if (totalDiaTemp > totalOntem) {
-          texto = `Você gastou ${formatMoney(
-            totalDiaTemp - totalOntem
-          )} a mais que ontem ⚠️`;
-        } else if (totalDiaTemp < totalOntem) {
-          texto = `Você gastou ${formatMoney(
-            totalOntem - totalDiaTemp
-          )} a menos que ontem ✅`;
-        } else {
-          texto = "Seus gastos estão iguais aos de ontem 📊";
+        if (totalOntem !== 0) {
+          if (totalDiaTemp > totalOntem) {
+            textoComparacao = `Você gastou ${formatMoney(
+              totalDiaTemp - totalOntem
+            )} a mais que ontem ⚠️`;
+          } else if (totalDiaTemp < totalOntem) {
+            textoComparacao = `Você gastou ${formatMoney(
+              totalOntem - totalDiaTemp
+            )} a menos que ontem ✅`;
+          } else {
+            textoComparacao = "Seus gastos estão iguais aos de ontem 📊";
+          }
         }
 
+        // 🔥 PREVISÃO DO MÊS
+        const diaAtual = hoje.getDate();
+        const diasNoMes = new Date(
+          anoAtual,
+          mesAtual + 1,
+          0
+        ).getDate();
+
+        let textoPrevisao = "";
+
+        if (totalMesTemp > 0) {
+          const mediaDia = totalMesTemp / diaAtual;
+          const previsao = mediaDia * diasNoMes;
+
+          textoPrevisao = `📊 Se continuar assim, você gastará ${formatMoney(
+            previsao
+          )} este mês`;
+        }
+
+        // 🔥 CATEGORIA DOMINANTE
+        let maiorCategoria = "";
+        let maiorValor = 0;
+
+        Object.entries(categoriasMap).forEach(
+          ([cat, valor]) => {
+            if (valor > maiorValor) {
+              maiorValor = valor;
+              maiorCategoria = cat;
+            }
+          }
+        );
+
+        let textoCategoria = "";
+
+if (maiorCategoria && totalMesTemp > 0) {
+  const percentual = (maiorValor / totalMesTemp) * 100;
+
+  textoCategoria = `📊 ${maiorCategoria} concentra ${percentual.toFixed(0)}% dos seus gastos`;
+}
+
+        // ✅ SET STATES
         setTotalHoje(totalDiaTemp);
         setTotalMes(totalMesTemp);
         setRegistrosHoje(registrosTemp);
-        setComparacaoTexto(texto);
+        setComparacaoTexto(textoComparacao);
+        setPrevisaoTexto(textoPrevisao);
+        setCategoriaInsight(textoCategoria);
       }
 
       carregarDados();
@@ -101,8 +152,7 @@ export default function Home() {
   );
 
   function iniciarRegistroPorVoz() {
-    const voiceId = Date.now().toString();
-    router.push(`/(tabs)/registrar?voiceId=${voiceId}`);
+    router.push("/(tabs)/registrar");
   }
 
   return (
@@ -118,61 +168,64 @@ export default function Home() {
         </Text>
       </View>
 
-      
-      <View style={styles.metrics}>
-        <View style={styles.metricCardHighlight}>
-  <Text style={styles.metricLabel}>Total do dia</Text>
+      {/* 🔥 TOTAL DO DIA */}
+      <View style={styles.metricCardHighlight}>
+        <Text style={styles.metricLabel}>Total do dia</Text>
 
-  <Text style={styles.metricValue}>
-    {formatMoney(totalHoje)}
-  </Text>
+        <Text style={styles.metricValue}>
+          {formatMoney(totalHoje)}
+        </Text>
 
-  {/* 🔥 FRASE DENTRO DO CARD */}
-  {comparacaoTexto !== "" && (
-    <Text style={styles.compareInline}>
-      {comparacaoTexto}
-    </Text>
-  )}
-</View>
-
-
-
-
-
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Total do mês</Text>
-          <Text style={styles.metricValue}>
-            {formatMoney(totalMes)}
+        {comparacaoTexto !== "" && (
+          <Text style={styles.compareInline}>
+            {comparacaoTexto}
           </Text>
-        </View>
+        )}
+      </View>
 
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Registros hoje</Text>
-          <Text style={styles.metricValue}>
-            {registrosHoje}
+      {/* 🔥 TOTAL DO MÊS */}
+      <View style={styles.metricCard}>
+        <Text style={styles.metricLabel}>Total do mês</Text>
+
+        <Text style={styles.metricValue}>
+          {formatMoney(totalMes)}
+        </Text>
+
+        {previsaoTexto !== "" && (
+          <Text style={styles.compareInline}>
+            {previsaoTexto}
           </Text>
-        </View>
+        )}
+
+        {categoriaInsight !== "" && (
+          <Text style={styles.compareInline}>
+            {categoriaInsight}
+          </Text>
+        )}
+      </View>
+
+      {/* ✅ REGISTROS */}
+      <View style={styles.metricCard}>
+        <Text style={styles.metricLabel}>Registros hoje</Text>
+
+        <Text style={styles.metricValue}>
+          {registrosHoje}
+        </Text>
       </View>
 
       <TouchableOpacity
         style={styles.voiceButton}
         onPress={iniciarRegistroPorVoz}
       >
-        <Text style={styles.voiceButtonText}>🎤 Falar despesa</Text>
+        <Text style={styles.voiceButtonText}>
+          🎤 Falar despesa
+        </Text>
       </TouchableOpacity>
     </View>
-
-
-
-   
-   
-
-
-
   );
 }
 
-/* 🎨 ESTILOS */
+/* ✅ ESTILO */
 
 const styles = StyleSheet.create({
   container: {
@@ -199,10 +252,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     padding: 16,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 20,
     borderWidth: 0.5,
     borderColor: "#eee",
-    elevation: 3,
   },
 
   insightText: {
@@ -210,20 +262,13 @@ const styles = StyleSheet.create({
     color: "#333",
   },
 
-  
-  
-  metrics: {
-    marginBottom: 24,
-  },
-
   metricCardHighlight: {
     backgroundColor: "#FFF",
     padding: 18,
     borderRadius: 14,
-    marginBottom: 14,
+    marginBottom: 12,
     borderLeftWidth: 5,
     borderLeftColor: "#0A8F55",
-    elevation: 3,
   },
 
   metricCard: {
@@ -233,12 +278,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 0.5,
     borderColor: "#eee",
-    elevation: 3,
   },
 
   metricLabel: {
     fontSize: 13,
-    color: "#888",
+    color: "#666",
   },
 
   metricValue: {
@@ -248,12 +292,11 @@ const styles = StyleSheet.create({
     color: "#0A8F55",
   },
 
-compareInline: {
-  marginTop: 6,
-  fontSize: 13,
-  color: "#555",
-},
-
+  compareInline: {
+    marginTop: 6,
+    fontSize: 13,
+    color: "#555",
+  },
 
   voiceButton: {
     backgroundColor: "#0A8F55",
@@ -261,7 +304,6 @@ compareInline: {
     borderRadius: 14,
     alignItems: "center",
     marginTop: 10,
-    elevation: 5,
   },
 
   voiceButtonText: {

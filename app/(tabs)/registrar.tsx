@@ -178,14 +178,13 @@ export default function Registrar() {
 
           <Text style={styles.label}>Categoria</Text>
           
-          <Text style={styles.label}>Categoria</Text>
-
+          
 <select
   value={categoria}
   onChange={(e) => setCategoria(e.target.value)}
   style={styles.input}
 >
-  <option value="">Selecione</option>
+  <option value="">Selecione a categoria</option>
 
   <option>Alimentação</option>
   <option>Transporte</option>
@@ -197,7 +196,6 @@ export default function Registrar() {
   <option>Cartão de crédito</option>
   <option>Outros</option>
 </select>
-``
 
           <Text style={styles.label}>Data</Text>
           <TextInput
@@ -264,11 +262,16 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 14, marginBottom: 4 },
   input: {
-    backgroundColor: "#FFF",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
+  backgroundColor: "#F9FAFB",
+  padding: 12,
+  borderRadius: 10,
+  marginBottom: 12,
+  fontSize: 14,
+  borderWidth: 1,
+  borderColor: "#E5E7EB", // borda elegante
+
+}
+,
   voiceContainer: { alignItems: "center", marginBottom: 24 },
   micIcon: { fontSize: 48, marginBottom: 8 },
   voiceText: { fontSize: 16, color: "#0A8F55", marginBottom: 8 },
