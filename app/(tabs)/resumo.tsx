@@ -37,9 +37,13 @@ export default function Resumo() {
     load();
   }, []);
 
-  const mostrarComparacao = period !== "custom";
+  const mostrarComparacao =
+    period !== "custom" && period !== "all";
 
-  /* ✅ FILTRO */
+  /* ===============================
+     FILTRO ATUAL
+  =============================== */
+
   const filtered = useMemo(() => {
     return expenses.filter((e) => {
       const d = new Date(e.data);
@@ -78,16 +82,70 @@ export default function Resumo() {
     });
   }, [expenses, period]);
 
-  /* ✅ CÁLCULOS */
+  /* ===============================
+     FILTRO ANTERIOR
+  =============================== */
 
-  const total = filtered.reduce((sum, e) => sum + e.valor, 0);
+  const previousFiltered = useMemo(() => {
+    return expenses.filter((e) => {
+      const d = new Date(e.data);
+
+      if (period === "today") {
+        const ontem = new Date(now);
+        ontem.setDate(now.getDate() - 1);
+        return d.toDateString() === ontem.toDateString();
+      }
+
+      if (period === "week") {
+        const start = new Date(now);
+        start.setDate(now.getDate() - now.getDay() - 7);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        return d >= start && d <= end;
+      }
+
+      if (period === "month") {
+        return (
+          d.getMonth() === now.getMonth() - 1 &&
+          d.getFullYear() === now.getFullYear()
+        );
+      }
+
+      if (period === "year") {
+        return d.getFullYear() === now.getFullYear() - 1;
+      }
+
+      return false;
+    });
+  }, [expenses, period]);
+
+  /* ===============================
+     CÁLCULOS
+  =============================== */
+
+  const total = filtered.reduce((s, e) => s + e.valor, 0);
+  const previousTotal = previousFiltered.reduce(
+    (s, e) => s + e.valor,
+    0
+  );
+
+  const diffTotal = total - previousTotal;
 
   const dias = new Set(filtered.map((e) => e.data)).size;
-
   const media = dias > 0 ? total / dias : 0;
 
-  const porCategoria: Record<string, number> = {};
+  const previousDias = new Set(
+    previousFiltered.map((e) => e.data)
+  ).size;
 
+  const previousMedia =
+    previousDias > 0 ? previousTotal / previousDias : 0;
+
+  /* ===============================
+     TOP CATEGORIAS E GASTOS
+  =============================== */
+
+  const porCategoria: Record<string, number> = {};
   filtered.forEach((e) => {
     porCategoria[e.categoria] =
       (porCategoria[e.categoria] || 0) + e.valor;
@@ -117,27 +175,27 @@ export default function Resumo() {
         </Text>
       </TouchableOpacity>
 
-      {/* 🔥 MENU */}
       {menuAberto && (
         <View style={styles.menu}>
           {[
-            { label: "Hoje", value: "today" },
-            { label: "Esta semana", value: "week" },
-            { label: "Este mês", value: "month" },
-            { label: "Este ano", value: "year" },
-            { label: "Ano passado", value: "lastYear" },
-            { label: "Desde o início", value: "all" },
-            { label: "Personalizado", value: "custom" },
-          ].map((item) => (
+            ["Hoje", "today"],
+            ["Esta semana", "week"],
+            ["Este mês", "month"],
+            ["Este ano", "year"],
+            ["Ano passado", "lastYear"],
+            ["Desde o início", "all"],
+            ["Personalizado", "custom"],
+          ].map(([label, value]) => (
             <TouchableOpacity
-              key={item.value}
+              key={value}
               onPress={() => {
-                setPeriod(item.value as any);
+                setPeriod(value as Period);
                 setMenuAberto(false);
               }}
-              style={styles.menuItem}
             >
-              <Text>{item.label}</Text>
+              <Text style={styles.menuItem}>
+                {label}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -146,16 +204,23 @@ export default function Resumo() {
       <View style={styles.row}>
         <Card title="💰 Total gasto" value={`R$ ${total.toFixed(2)}`}>
           {mostrarComparacao && (
-            <Text style={styles.subText}>
-              Comparação com período anterior
-            </Text>
-          )}
+  <Text style={styles.subText}>
+    {previousTotal === 0
+      ? "Sem dados do período anterior para comparação."
+      : diffTotal === 0
+      ? "Gasto igual ao período anterior."
+      : diffTotal > 0
+      ? `Você gastou R$ ${diffTotal.toFixed(2)} a mais que o período anterior.`
+      : `Você gastou R$ ${Math.abs(diffTotal).toFixed(2)} a menos que o período anterior.`}
+  </Text>
+)}
+
         </Card>
 
         <Card title="📊 Média diária" value={`R$ ${media.toFixed(2)}`}>
-          {mostrarComparacao && (
+          {mostrarComparacao && previousMedia > 0 && (
             <Text style={styles.subText}>
-              Média baseada nos dias com gasto
+              No período anterior, sua média foi R$ {previousMedia.toFixed(2)}.
             </Text>
           )}
         </Card>
@@ -184,11 +249,7 @@ export default function Resumo() {
 
 /* =============================== */
 
-function Card({
-  title,
-  value,
-  children,
-}: any) {
+function Card({ title, value, children }: any) {
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{title}</Text>
@@ -220,11 +281,7 @@ function labelPeriod(p: Period) {
 /* =============================== */
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#F7F8FA",
-  },
+  container: { flex: 1, padding: 16, backgroundColor: "#F7F8FA" },
 
   title: {
     fontSize: 22,
@@ -233,14 +290,9 @@ const styles = StyleSheet.create({
     color: "#0A8F55",
   },
 
-  periodBox: {
-    alignItems: "center",
-    marginVertical: 10,
-  },
+  periodBox: { alignItems: "center", marginVertical: 10 },
 
-  periodText: {
-    color: "#555",
-  },
+  periodText: { color: "#555" },
 
   menu: {
     backgroundColor: "#FFF",
@@ -249,14 +301,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  menuItem: {
-    paddingVertical: 6,
-  },
+  menuItem: { paddingVertical: 6 },
 
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
+  row: { flexDirection: "row", gap: 10 },
 
   card: {
     backgroundColor: "#FFF",
@@ -266,10 +313,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  cardTitle: {
-    fontSize: 14,
-    color: "#666",
-  },
+  cardTitle: { fontSize: 14, color: "#666" },
 
   cardValue: {
     fontSize: 20,
